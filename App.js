@@ -187,6 +187,13 @@ class App {
     }
 
     /**
+     * 复制EVE格式报告到剪贴板
+     */
+    copyEVE() {
+        this.reportView.handleCopyEVE();
+    }
+
+    /**
      * 导出历史记录为JSON
      */
     async exportHistoryJson() {

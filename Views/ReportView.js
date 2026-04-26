@@ -37,6 +37,14 @@ class ReportView {
     }
 
     /**
+     * 处理复制EVE格式报告到剪贴板
+     */
+    async handleCopyEVE() {
+        const result = await this.viewModel.copyReportEVE();
+        Helpers.alert(result.message, result.success ? 'success' : 'error');
+    }
+
+    /**
      * 处理保存操作
      * @param {FirebaseService} firebaseService - Firebase服务实例
      */

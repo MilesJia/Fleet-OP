@@ -42,6 +42,18 @@ class ReportViewModel {
     }
 
     /**
+     * 复制EVE格式报告到剪贴板
+     * @returns {Promise<Object>} 操作结果
+     */
+    async copyReportEVE() {
+        if (!this.operation || !this.operation.report) {
+            return { success: false, message: '请先生成报告' };
+        }
+        const eveText = this.operation.report.generateEVE();
+        return await ReportService.copyToClipboard(eveText);
+    }
+
+    /**
      * 保存报告
      * @param {FirebaseService} firebaseService - Firebase服务实例
      * @returns {Promise<Object>} 操作结果
