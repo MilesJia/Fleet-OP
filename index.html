@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EVE作战记录工具</title>
+    <style>
+        /* 全局样式重置 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 100%);
+            color: #e0e6ed;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        /* 容器样式 */
+        .container { max-width: 1400px; margin: 0 auto; }
+        /* 头部样式 */
+        .header-wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        h1 {
+            color: #00d4ff;
+            text-shadow: 0 0 2px rgba(0, 212, 255, 0.5);
+            font-size: 28px;
+        }
+        /* 重置按钮样式 */
+        .btn-reset {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .btn-reset:hover {
+            background: #dc2626;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+        }
+        /* 清空历史记录按钮 */
+        .btn-clear-history {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        .btn-clear-history:hover {
+            background: #d97060;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+        }
+        /* 副标题样式 */
+        .subtitle {
+            text-align: center;
+            color: #6b7688;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        /* 面板样式 */
+        .panel {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .panel-title {
+            color: #00d4ff;
+            font-size: 16px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        /* 阶段指示器样式 */
+        .phase-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .phase-step {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            margin: 0 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .phase-step:hover { border-color: #47569f; }
+        .phase-step.active {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+        .phase-step.completed {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .phase-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00d4ff;
+            margin-bottom: 5px;
+        }
+        .phase-title { font-size: 14px; color: e2e8f0; }
+        .phase-desc { font-size: 11px; color: #6b7688; margin-top: 5px; }
+        /* 表单样式 */
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .form-group.small { flex: 0.5; min-width: 120px; }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+        /* 快捷按钮样式 */
+        .quick-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 5px;
+        }
+        .quick-btn {
+            padding: 6px 12px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            color: #cbd5e1;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .quick-btn:hover {
+            background: #334155;
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+        .quick-btn.active {
+            background: #00d4ff;
+            color: #0f172a;
+            border-color: #00d4ff;
+            font-weight: bold;
+        }
+        /* 输出区域样式 */
+        .output-area {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #00ff88;
+            min-height: 200px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            cursor: pointer;
+        }
+        /* 主要按钮样式 */
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            color: #0f172a;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+        /* 次要按钮样式 */
+        .btn-secondary {
+            background: #334155;
+            color: #e2e8f0;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        .btn-secondary:hover { background: #47569f; }
+        /* 成功按钮样式 */
+        .btn-success {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        /* 危险按钮样式 */
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        /* 成员表格样式 */
+        .member-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+        .member-table th, .member-table td {
+            padding: 10px;
+            border: 1px solid #334155;
+            text-align: left;
+        }
+        .member-table th {
+            background: #1e293b;
+            color: #00d4ff;
+        }
+        /* 角色选择器样式 */
+        .role-select {
+            padding: 6px 8px;
+            font-size: 13px;
+            border-radius: 4px;
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+        }
+        /* 角色颜色样式 */
+        .role-dps { color: #ef4444; }
+        .role-logi { color: #10b981; }
+        .role-intercept { color: #f59e0b; }
+        .role-scout { color: #06b6d4; }
+        .role-electronic { color: #8b5cf6; }
+        /* 历史操作按钮样式 */
+        .history-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        /* 历史记录列表样式 */
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .history-item {
+            padding: 8px;
+            background: #1e293b;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        .history-item:hover { background: #334155; }
+        /* 隐藏文件输入 */
+        #jsonFileInput { display: none; }
+        /* 导入区域样式 */
+        .import-area {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+        
+        /* 舰队统计面板样式 */
+        .fleet-count-panel {
+            display: flex;
+            gap: 12px;
+            margin: 15px 0;
+            padding: 12px;
+            background: #1e293b;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        .fleet-count-item {
+            flex: 1;
+            min-width: 90px;
+            text-align: center;
+            padding: 8px;
+            background: #334155;
+            border-radius: 6px;
+        }
+        .fleet-count-label {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        .fleet-count-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        .fleet-total-item {
+            flex: 1;
+            min-width: 90px;
+            text-align: center;
+            padding: 8px;
+            background: #00d4ff;
+            border-radius: 6px;
+        }
+        .fleet-total-label {
+            font-size: 12px;
+            color: #0f172a;
+        }
+        .fleet-total-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #0f172a;
+        }
+
+        /* 响应式样式 */
+        @media (max-width: 768px) {
+            .form-row { flex-direction: column; }
+            .form-group { min-width: 100%; }
+            .phase-indicator { flex-direction: column; }
+            .phase-step { margin: 5px 0; }
+            .header-wrap { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+<!-- 主容器 -->
+<div class="container">
+    <!-- 头部区域 -->
+    <div class="header-wrap">
+        <h1>⚔️ EVE欧服 PAP作战记录工具</h1>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button type="button" class="btn-reset" onclick="app.resetPageData()">🔄 重置填写数据</button>
+            <button type="button" class="btn-clear-history" onclick="app.clearAllHistory()">🗑️ 清空历史记录</button>
+        </div>
+    </div>
+    <div class="subtitle">集结开始 → 结束回站核实 | 自由切换页面，无强制校验</div>
+
+    <!-- 阶段指示器 -->
+    <div class="panel">
+        <div class="phase-indicator">
+            <div class="phase-step active" id="phase1" onclick="app.switchPhase(1)">
+                <div class="phase-number">1</div>
+                <div class="phase-title" id="phase1Title">集结开始</div>
+                <div class="phase-desc" id="phase1Desc">Forming Up</div>
+            </div>
+            <div class="phase-step" id="phase2" onclick="app.switchPhase(2)">
+                <div class="phase-number">2</div>
+                <div class="phase-title" id="phase2Title">结束回站</div>
+                <div class="phase-desc" id="phase2Desc">RTB & Verify</div>
+            </div>
+            <div class="phase-step" id="phase3" onclick="app.switchPhase(3)">
+                <div class="phase-number">3</div>
+                <div class="phase-title" id="phase3Title">生成报告</div>
+                <div class="phase-desc" id="phase3Desc">Final Report</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 第一阶段：集结开始 -->
+    <div id="phase1Content" class="phase-content">
+        <div class="panel">
+            <div class="panel-title" id="phase1PanelTitle">🚀 集结开始配置 (Forming Up)</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label id="fleetTypeLabel">舰队类型</label>
+                    <select id="fleetType">
+                        <option value="">选择类型...</option>
+                        <option value="CTA">联盟集结(CTA)</option>
+                        <option value="StratOp">战略行动(StratOp)</option>
+                        <option value="Home Defense">本土防御(Home Defense)</option>
+                        <option value="Roaming">漫游扫荡(Roaming)</option>
+                        <option value="Mining">矿业开采(Mining)</option>
+                        <option value="Other">其他行动(Other)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label id="locationLabel">集结地点</label>
+                    <input type="text" id="location" placeholder="例如：LW-YEW">
+                </div>
+                <div class="form-group">
+                    <label id="fcNameLabel">FC (舰队指挥)</label>
+                    <input type="text" id="fcName" placeholder="指挥官游戏名">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group small">
+                    <label id="formTimeLabel">集结时间</label>
+                    <input type="text" id="formTime" readonly style="background: #1e293b; color: #00d4ff;">
+                </div>
+                <div class="form-group">
+                    <label id="targetLabel">预期目标</label>
+                    <input type="text" id="target" placeholder="例如：敌方POS, 收割, 防御">
+                </div>
+            </div>
+
+            <!-- 舰队统计面板 -->
+            <div class="fleet-count-panel">
+                <div class="fleet-count-item">
+                    <div class="fleet-count-label">火力</div>
+                    <div class="fleet-count-value" id="count_dps">0</div>
+                </div>
+                <div class="fleet-count-item">
+                    <div class="fleet-count-label">后勤</div>
+                    <div class="fleet-count-value" id="count_logi">0</div>
+                </div>
+                <div class="fleet-count-item">
+                    <div class="fleet-count-label">拦截</div>
+                    <div class="fleet-count-value" id="count_intercept">0</div>
+                </div>
+                <div class="fleet-count-item">
+                    <div class="fleet-count-label">侦查</div>
+                    <div class="fleet-count-value" id="count_scout">0</div>
+                </div>
+                <div class="fleet-count-item">
+                    <div class="fleet-count-label">电子</div>
+                    <div class="fleet-count-value" id="count_electronic">0</div>
+                </div>
+                <div class="fleet-total-item">
+                    <div class="fleet-total-label">总数</div>
+                    <div class="fleet-total-value" id="count_total">0</div>
+                </div>
+            </div>
+
+            <!-- 快捷标签 -->
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label id="quickTagsLabel">快捷标签【支持多选，点击锁定】</label>
+                <div class="quick-buttons">
+                    <button class="quick-btn" onclick="app.toggleTag(this, 'PAP')">PAP</button>
+                    <button class="quick-btn" onclick="app.toggleTag(this, 'CTA')">CTA</button>
+                    <button class="quick-btn" onclick="app.toggleTag(this, 'StratOp')">StratOp</button>
+                    <button class="quick-btn" onclick="app.toggleTag(this, 'SRP')">需SRP</button>
+                    <button class="quick-btn" onclick="app.toggleTag(this, 'NoSRP')">无SRP</button>
+                    <button class="quick-btn" onclick="app.toggleTag(this, 'T1')">T1</button>
+                    <button class="quick-btn" onclick="app.toggleTag(this, 'T2')">T2</button>
+                    <button class="quick-btn" onclick="app.toggleTag(this, 'T3')">T3</button>
+                </div>
+            </div>
+
+            <!-- 成员导入 -->
+            <div class="panel-title" style="margin-top: 20px;" id="importFormingLabel">👥 导入集结成员</div>
+            <textarea class="import-area" id="formImport" placeholder="粘贴成员列表"></textarea>
+            <div style="display:flex;gap:10px;margin-top:10px;">
+                <button class="btn-primary" id="importFormingButton" onclick="app.importForming()">导入集结名单</button>
+                <button class="btn-secondary" id="addMemberButton" onclick="app.addManualMember()">手动添加成员</button>
+            </div>
+        </div>
+
+        <!-- 成员编辑面板 -->
+        <div class="panel" id="memberEditPanel" style="display:none;">
+            <div class="panel-title" id="memberEditPanelTitle">✏️ 成员职责编辑（可删除）</div>
+            <div id="memberTableContainer"></div>
+            <div style="display:flex;gap:10px;margin-top:15px;">
+                <button class="btn-success" id="saveChangesButton" onclick="app.refreshMemberStats()">✅ 保存修改</button>
+                <button class="btn-secondary" onclick="app.addManualMember()">➕ 添加新成员</button>
+            </div>
+        </div>
+
+        <!-- 完成按钮 -->
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="btn-success" id="completePhase1Button" onclick="app.completePhase(1)" style="font-size: 16px; padding: 15px 30px;">
+                ✓ 集结完成，进入第二页
+            </button>
+        </div>
+    </div>
+
+    <!-- 第二阶段：结束回站 -->
+    <div id="phase2Content" class="phase-content" style="display: none;">
+        <div class="panel">
+            <div class="panel-title" id="phase2PanelTitle">🏰 结束回站配置</div>
+            <div class="form-row">
+                <div class="form-group small">
+                    <label id="rtbTimeLabel">回站时间</label>
+                    <input type="text" id="rtbTime" readonly style="background: #1e293b; color: #10b981;">
+                </div>
+                <div class="form-group">
+                    <label id="rtbLocationLabel">返回地点</label>
+                    <input type="text" id="rtbLocation" placeholder="例如：Home Station">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label id="combatSummaryLabel">作战摘要</label>
+                <textarea id="combatSummary" rows="3"></textarea>
+            </div>
+
+            <!-- 回站统计面板 -->
+            <div class="fleet-count-panel">
+                <div class="fleet-count-item">
+                    <div class="fleet-count-label">火力</div>
+                    <div class="fleet-count-value" id="count_dps_2">0</div>
+                </div>
+                <div class="fleet-count-item">
+                    <div class="fleet-count-label">后勤</div>
+                    <div class="fleet-count-value" id="count_logi_2">0</div>
+                </div>
+                <div class="fleet-count-item">
+                    <div class="fleet-count-label">拦截</div>
+                    <div class="fleet-count-value" id="count_intercept_2">0</div>
+                </div>
+                <div class="fleet-count-item">
+                    <div class="fleet-count-label">侦查</div>
+                    <div class="fleet-count-value" id="count_scout_2">0</div>
+                </div>
+                <div class="fleet-count-item">
+                    <div class="fleet-count-label">电子</div>
+                    <div class="fleet-count-value" id="count_electronic_2">0</div>
+                </div>
+                <div class="fleet-total-item">
+                    <div class="fleet-total-label">总数</div>
+                    <div class="fleet-total-value" id="count_total_2">0</div>
+                </div>
+            </div>
+
+            <!-- 回站成员导入 -->
+            <div class="panel-title" style="margin-top: 20px;" id="importRTBLabel">👥 导入回站成员</div>
+            <textarea class="import-area" id="rtbImport" placeholder="粘贴格式与集结一致"></textarea>
+            <button class="btn-primary" id="importRTBButton" onclick="app.importRTB()" style="margin-top: 10px;">导入回站名单</button>
+        </div>
+
+        <!-- 战损登记面板 -->
+        <div class="panel" id="lossRegisterPanel" style="display: none;">
+            <div class="panel-title" id="kmTextLabel">💀 战损登记</div>
+            <textarea class="import-area" id="kmText" placeholder="每行一条KM链接"></textarea>
+            <button class="btn-primary" id="parseKMButton" onclick="app.parseKM()" style="margin-top:10px;">解析KM并匹配</button>
+            <div id="kmInfo" style="margin-top:10px;"></div>
+        </div>
+
+        <!-- 完成按钮 -->
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="btn-success" id="completePhase2Button" onclick="app.completePhase(2)" style="font-size: 16px; padding: 15px 30px;">
+                ✓ 确认无误，生成报告
+            </button>
+        </div>
+    </div>
+
+    <!-- 第三阶段：生成报告 -->
+    <div id="phase3Content" class="phase-content" style="display: none;">
+        <div class="panel">
+            <div class="panel-title" id="phase3PanelTitle">📝 PAP最终报告</div>
+            <div class="output-area" id="reportOutput"></div>
+            
+            <!-- 历史操作按钮 -->
+            <div class="history-actions">
+                <button class="btn-secondary" id="saveReportButton" onclick="app.saveReport()">💾 保存报告</button>
+                <button class="btn-secondary" id="copyReportButton" onclick="app.copyReport()">📋 一键复制报告</button>
+                <button class="btn-secondary" id="exportJSONButton" onclick="app.exportHistoryJson()">📤 导出JSON</button>
+                <button class="btn-secondary" id="importJSONButton" onclick="app.importHistoryJson()">📥 导入JSON</button>
+                <button class="btn-secondary" id="loadHistoryButton" onclick="app.loadHistory()">📜 历史记录</button>
+                <input type="file" id="jsonFileInput" accept=".json">
+            </div>
+            
+            <!-- 历史记录列表 -->
+            <div id="historyContainer" class="history-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 脚本加载顺序 -->
+<!-- 1. 工具类 -->
+<script src="Utils/Constants.js"></script>
+<script src="Utils/Helpers.js"></script>
+<!-- 2. 数据模型 -->
+<script src="Models/Member.js"></script>
+<script src="Models/FleetOperation.js"></script>
+<script src="Models/Report.js"></script>
+<!-- 3. 服务层 -->
+<script src="Services/StorageService.js"></script>
+<script src="Services/RoleDetectionService.js"></script>
+<script src="Services/MemberService.js"></script>
+<script src="Services/ReportService.js"></script>
+<!-- 4. 视图模型 -->
+<script src="ViewModels/FormingViewModel.js"></script>
+<script src="ViewModels/RTBViewModel.js"></script>
+<script src="ViewModels/ReportViewModel.js"></script>
+<script src="ViewModels/MainViewModel.js"></script>
+<!-- 5. 视图层 -->
+<script src="Views/MainView.js"></script>
+<script src="Views/FormingView.js"></script>
+<script src="Views/RTBView.js"></script>
+<script src="Views/ReportView.js"></script>
+<!-- 6. 应用入口 -->
+<script src="App.js"></script>
+</body>
+</html>
