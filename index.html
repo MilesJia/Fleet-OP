@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EVE作战记录工具</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+    
     <style>
         /* 全局样式重置 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -376,6 +381,12 @@
     <div class="header-wrap">
         <h1>⚔️ EVE欧服 PAP作战记录工具</h1>
         <div style="display: flex; align-items: center; gap: 10px;">
+            <button type="button" id="loginButton" class="btn-secondary" onclick="app.showLoginModal()" style="display: block;">👤 登录</button>
+            <button type="button" id="registerButton" class="btn-secondary" onclick="app.showRegisterModal()" style="display: block;">📝 注册</button>
+            <div id="userInfo" style="display: none; align-items: center; gap: 10px;">
+                <span id="userEmail" style="color: #00d4ff;"></span>
+                <button type="button" class="btn-secondary" onclick="app.logout()">🚪 退出</button>
+            </div>
             <button type="button" class="btn-reset" onclick="app.resetPageData()">🔄 重置填写数据</button>
             <button type="button" class="btn-clear-history" onclick="app.clearAllHistory()">🗑️ 清空历史记录</button>
         </div>
@@ -616,6 +627,7 @@
 <script src="Services/RoleDetectionService.js"></script>
 <script src="Services/MemberService.js"></script>
 <script src="Services/ReportService.js"></script>
+<script src="Services/FirebaseService.js"></script>
 <!-- 4. 视图模型 -->
 <script src="ViewModels/FormingViewModel.js"></script>
 <script src="ViewModels/RTBViewModel.js"></script>
@@ -628,5 +640,108 @@
 <script src="Views/ReportView.js"></script>
 <!-- 6. 应用入口 -->
 <script src="App.js"></script>
+
+<!-- 登录模态框 -->
+<div id="loginModal" style="
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+    background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; 
+    z-index: 1000;">
+    <div style="
+        background: #1e293b; border-radius: 12px; padding: 30px; 
+        width: 400px; max-width: 90%; 
+        box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+    ">
+        <h2 style="color: #00d4ff; margin-bottom: 20px; text-align: center;">用户登录</h2>
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            <div>
+                <label style="display: block; margin-bottom: 5px; color: #94a3b8;">邮箱</label>
+                <input type="email" id="loginEmail" style="
+                    width: 100%; padding: 12px; 
+                    background: #0f172a; border: 1px solid #334155; 
+                    border-radius: 6px; color: #e2e8f0;
+                ">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; color: #94a3b8;">密码</label>
+                <input type="password" id="loginPassword" style="
+                    width: 100%; padding: 12px; 
+                    background: #0f172a; border: 1px solid #334155; 
+                    border-radius: 6px; color: #e2e8f0;
+                ">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="app.login()" style="
+                    flex: 1; padding: 12px; 
+                    background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+                    color: #0f172a; border: none; border-radius: 6px; 
+                    font-weight: bold; cursor: pointer;
+                ">登录</button>
+                <button onclick="app.closeLoginModal()" style="
+                    flex: 1; padding: 12px; 
+                    background: #334155; color: #e2e8f0; 
+                    border: none; border-radius: 6px; 
+                    cursor: pointer;
+                ">取消</button>
+            </div>
+            <div id="loginError" style="color: #ef4444; font-size: 13px; text-align: center; display: none;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 注册模态框 -->
+<div id="registerModal" style="
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+    background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; 
+    z-index: 1000;">
+    <div style="
+        background: #1e293b; border-radius: 12px; padding: 30px; 
+        width: 400px; max-width: 90%; 
+        box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+    ">
+        <h2 style="color: #00d4ff; margin-bottom: 20px; text-align: center;">用户注册</h2>
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            <div>
+                <label style="display: block; margin-bottom: 5px; color: #94a3b8;">邮箱</label>
+                <input type="email" id="registerEmail" style="
+                    width: 100%; padding: 12px; 
+                    background: #0f172a; border: 1px solid #334155; 
+                    border-radius: 6px; color: #e2e8f0;
+                ">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; color: #94a3b8;">密码</label>
+                <input type="password" id="registerPassword" style="
+                    width: 100%; padding: 12px; 
+                    background: #0f172a; border: 1px solid #334155; 
+                    border-radius: 6px; color: #e2e8f0;
+                ">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 5px; color: #94a3b8;">确认密码</label>
+                <input type="password" id="registerConfirmPassword" style="
+                    width: 100%; padding: 12px; 
+                    background: #0f172a; border: 1px solid #334155; 
+                    border-radius: 6px; color: #e2e8f0;
+                ">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="app.register()" style="
+                    flex: 1; padding: 12px; 
+                    background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+                    color: #0f172a; border: none; border-radius: 6px; 
+                    font-weight: bold; cursor: pointer;
+                ">注册</button>
+                <button onclick="app.closeRegisterModal()" style="
+                    flex: 1; padding: 12px; 
+                    background: #334155; color: #e2e8f0; 
+                    border: none; border-radius: 6px; 
+                    cursor: pointer;
+                ">取消</button>
+            </div>
+            <div id="registerError" style="color: #ef4444; font-size: 13px; text-align: center; display: none;"></div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

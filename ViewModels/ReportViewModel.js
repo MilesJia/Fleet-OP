@@ -43,47 +43,52 @@ class ReportViewModel {
 
     /**
      * 保存报告
-     * @returns {Object} 操作结果
+     * @param {FirebaseService} firebaseService - Firebase服务实例
+     * @returns {Promise<Object>} 操作结果
      */
-    save() {
-        const result = StorageService.addReport(new Report(this.operation));
+    async save(firebaseService = null) {
+        const result = await StorageService.addReport(new Report(this.operation), firebaseService);
         if (result.success) {
-            this.loadHistory();
+            await this.loadHistory(firebaseService);
         }
         return result;
     }
 
     /**
      * 加载历史记录
-     * @returns {Array} 历史记录数组
+     * @param {FirebaseService} firebaseService - Firebase服务实例
+     * @returns {Promise<Array>} 历史记录数组
      */
-    loadHistory() {
-        return StorageService.loadReportHistory();
+    async loadHistory(firebaseService = null) {
+        return await StorageService.loadReportHistory(firebaseService);
     }
 
     /**
      * 导出JSON
+     * @param {FirebaseService} firebaseService - Firebase服务实例
      */
-    exportJson() {
-        StorageService.exportToJson();
+    async exportJson(firebaseService = null) {
+        await StorageService.exportToJson(firebaseService);
     }
 
     /**
      * 导入JSON
      * @param {File} file - 文件对象
+     * @param {FirebaseService} firebaseService - Firebase服务实例
      * @returns {Promise<Object>} 操作结果
      */
-    async importJson(file) {
-        return await StorageService.importFromJson(file);
+    async importJson(file, firebaseService = null) {
+        return await StorageService.importFromJson(file, firebaseService);
     }
 
     /**
      * 清空历史记录
-     * @returns {Object} 操作结果
+     * @param {FirebaseService} firebaseService - Firebase服务实例
+     * @returns {Promise<Object>} 操作结果
      */
-    clearHistory() {
+    async clearHistory(firebaseService = null) {
         if (Helpers.confirm('确定清空所有历史记录？此操作不可恢复！')) {
-            StorageService.clearHistory();
+            await StorageService.clearHistory(firebaseService);
             return { success: true };
         }
         return { success: false };

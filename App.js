@@ -13,17 +13,32 @@ class App {
         this.rtbView = new RTBView(this.mainVM.rtbVM);               // 回站阶段视图
         this.reportView = new ReportView(this.mainVM.reportVM);      // 报告阶段视图
         this.tags = [];  // 当前选中的标签
+        this.firebaseService = new FirebaseService();          // Firebase服务
     }
 
     /**
      * 初始化应用
      * 设置事件监听、绑定视图、加载历史记录
      */
-    init() {
+    async init() {
         this.mainVM.init();
         this.mainVM.bindViews(this.formingView, this.rtbView, this.reportView, this.mainView);
         this.setupEventListeners();
-        this.loadHistory();
+        
+        // 初始化Firebase
+        this.firebaseService.init();
+        
+        // 监听认证状态变化
+        this.firebaseService.onAuthStateChanged(user => {
+            this.updateAuthUI(user);
+            if (user) {
+                this.loadHistory();
+            } else {
+                this.loadHistory(); // 未登录时使用LocalStorage
+            }
+        });
+        
+        await this.loadHistory();
     }
 
     /**
@@ -72,8 +87,127 @@ class App {
     /**
      * 加载历史记录
      */
-    loadHistory() {
-        this.reportView.renderHistory();
+    async loadHistory() {
+        await this.reportView.renderHistory(this.firebaseService);
+    }
+    
+    /**
+     * 更新认证UI
+     * @param {Object} user - Firebase用户对象
+     */
+    updateAuthUI(user) {
+        if (user) {
+            // 显示用户信息
+            Helpers.hideElement('loginButton');
+            Helpers.hideElement('registerButton');
+            Helpers.showElement('userInfo');
+            Helpers.setElementValue('userEmail', user.email);
+        } else {
+            // 显示登录/注册按钮
+            Helpers.showElement('loginButton');
+            Helpers.showElement('registerButton');
+            Helpers.hideElement('userInfo');
+        }
+    }
+    
+    /**
+     * 显示登录模态框
+     */
+    showLoginModal() {
+        Helpers.showElement('loginModal');
+    }
+    
+    /**
+     * 关闭登录模态框
+     */
+    closeLoginModal() {
+        Helpers.hideElement('loginModal');
+        Helpers.setElementValue('loginEmail', '');
+        Helpers.setElementValue('loginPassword', '');
+        Helpers.hideElement('loginError');
+    }
+    
+    /**
+     * 显示注册模态框
+     */
+    showRegisterModal() {
+        Helpers.showElement('registerModal');
+    }
+    
+    /**
+     * 关闭注册模态框
+     */
+    closeRegisterModal() {
+        Helpers.hideElement('registerModal');
+        Helpers.setElementValue('registerEmail', '');
+        Helpers.setElementValue('registerPassword', '');
+        Helpers.setElementValue('registerConfirmPassword', '');
+        Helpers.hideElement('registerError');
+    }
+    
+    /**
+     * 用户登录
+     */
+    async login() {
+        const email = Helpers.getElement('loginEmail').value;
+        const password = Helpers.getElement('loginPassword').value;
+        
+        if (!email || !password) {
+            Helpers.showElement('loginError');
+            Helpers.setElementValue('loginError', '请填写邮箱和密码');
+            return;
+        }
+        
+        try {
+            await this.firebaseService.login(email, password);
+            this.closeLoginModal();
+            Helpers.alert('登录成功！', 'success');
+        } catch (error) {
+            Helpers.showElement('loginError');
+            Helpers.setElementValue('loginError', error.message);
+        }
+    }
+    
+    /**
+     * 用户注册
+     */
+    async register() {
+        const email = Helpers.getElement('registerEmail').value;
+        const password = Helpers.getElement('registerPassword').value;
+        const confirmPassword = Helpers.getElement('registerConfirmPassword').value;
+        
+        if (!email || !password || !confirmPassword) {
+            Helpers.showElement('registerError');
+            Helpers.setElementValue('registerError', '请填写所有字段');
+            return;
+        }
+        
+        if (password !== confirmPassword) {
+            Helpers.showElement('registerError');
+            Helpers.setElementValue('registerError', '密码不匹配');
+            return;
+        }
+        
+        try {
+            await this.firebaseService.register(email, password);
+            this.closeRegisterModal();
+            Helpers.alert('注册成功！', 'success');
+        } catch (error) {
+            Helpers.showElement('registerError');
+            Helpers.setElementValue('registerError', error.message);
+        }
+    }
+    
+    /**
+     * 用户退出
+     */
+    async logout() {
+        try {
+            await this.firebaseService.logout();
+            Helpers.alert('已退出登录', 'success');
+        } catch (error) {
+            Helpers.alert('退出登录失败: ' + error.message, 'error');
+        }
     }
 
     /**
@@ -175,8 +309,8 @@ class App {
     /**
      * 保存报告
      */
-    saveReport() {
-        this.reportView.handleSave();
+    async saveReport() {
+        await this.reportView.handleSave(this.firebaseService);
     }
 
     /**
@@ -189,8 +323,8 @@ class App {
     /**
      * 导出历史记录为JSON
      */
-    exportHistoryJson() {
-        this.reportView.handleExport();
+    async exportHistoryJson() {
+        await this.reportView.handleExport(this.firebaseService);
     }
 
     /**
@@ -208,14 +342,14 @@ class App {
         this.mainView.resetUI();
         this.formingView.hideMemberPanel();
         Helpers.hideElement('lossRegisterPanel');
-        Helpers.alert(this.i18nService.t('alerts.resetSuccess'), 'success');
+        Helpers.alert('数据已重置', 'success');
     }
 
     /**
      * 清空所有历史记录
      */
-    clearAllHistory() {
-        this.reportView.handleClearHistory();
+    async clearAllHistory() {
+        await this.reportView.handleClearHistory(this.firebaseService);
     }
 }
 
