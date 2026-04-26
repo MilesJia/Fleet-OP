@@ -176,8 +176,8 @@ class App {
         const password = Helpers.getElement('loginPassword').value;
         
         if (!username || !password) {
-            Helpers.showElement('loginError');
             Helpers.setElementValue('loginError', '请填写用户名和密码');
+            Helpers.showElement('loginError');
             return;
         }
         
@@ -186,8 +186,9 @@ class App {
             this.closeLoginModal();
             Helpers.alert('登录成功！', 'success');
         } catch (error) {
-            Helpers.showElement('loginError');
+            console.error('登录失败:', error);
             Helpers.setElementValue('loginError', error.message);
+            Helpers.showElement('loginError');
         }
     }
     
@@ -200,14 +201,14 @@ class App {
         const confirmPassword = Helpers.getElement('registerConfirmPassword').value;
         
         if (!username || !password || !confirmPassword) {
-            Helpers.showElement('registerError');
             Helpers.setElementValue('registerError', '请填写所有字段');
+            Helpers.showElement('registerError');
             return;
         }
         
         if (password !== confirmPassword) {
-            Helpers.showElement('registerError');
             Helpers.setElementValue('registerError', '密码不匹配');
+            Helpers.showElement('registerError');
             return;
         }
         
@@ -216,8 +217,9 @@ class App {
             this.closeRegisterModal();
             Helpers.alert('注册成功！', 'success');
         } catch (error) {
-            Helpers.showElement('registerError');
+            console.error('注册失败:', error);
             Helpers.setElementValue('registerError', error.message);
+            Helpers.showElement('registerError');
         }
     }
     
