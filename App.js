@@ -26,17 +26,24 @@ class App {
         this.setupEventListeners();
         
         // 初始化Firebase
-        this.firebaseService.init();
-        
-        // 监听认证状态变化
-        this.firebaseService.onAuthStateChanged(user => {
-            this.updateAuthUI(user);
-            if (user) {
-                this.loadHistory();
-            } else {
-                this.loadHistory(); // 未登录时使用LocalStorage
-            }
-        });
+        try {
+            this.firebaseService.init();
+            console.log('Firebase初始化成功');
+            
+            // 监听认证状态变化
+            this.firebaseService.onAuthStateChanged(user => {
+                this.updateAuthUI(user);
+                if (user) {
+                    this.loadHistory();
+                } else {
+                    this.loadHistory(); // 未登录时使用LocalStorage
+                }
+            });
+        } catch (error) {
+            console.error('Firebase初始化失败:', error);
+            // Firebase初始化失败时，使用LocalStorage模式
+            Helpers.alert('Firebase初始化失败，将使用本地存储模式', 'warning');
+        }
         
         await this.loadHistory();
     }
@@ -138,7 +145,7 @@ class App {
      */
     closeLoginModal() {
         Helpers.hideElement('loginModal');
-        Helpers.setElementValue('loginEmail', '');
+        Helpers.setElementValue('loginUsername', '');
         Helpers.setElementValue('loginPassword', '');
         Helpers.hideElement('loginError');
     }
@@ -155,7 +162,7 @@ class App {
      */
     closeRegisterModal() {
         Helpers.hideElement('registerModal');
-        Helpers.setElementValue('registerEmail', '');
+        Helpers.setElementValue('registerUsername', '');
         Helpers.setElementValue('registerPassword', '');
         Helpers.setElementValue('registerConfirmPassword', '');
         Helpers.hideElement('registerError');

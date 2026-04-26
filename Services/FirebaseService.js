@@ -15,12 +15,18 @@ class FirebaseService {
     }
     
     init() {
-        if (!this.app) {
-            this.app = firebase.initializeApp(this.firebaseConfig);
-            this.auth = firebase.auth(this.app);
-            this.firestore = firebase.firestore(this.app);
+        try {
+            if (!this.app) {
+                this.app = firebase.initializeApp(this.firebaseConfig);
+                this.auth = firebase.auth(this.app);
+                this.firestore = firebase.firestore(this.app);
+            }
+            return this;
+        } catch (error) {
+            console.error('Firebase初始化失败:', error);
+            // 初始化失败时，保持app为null，后续操作会自动使用LocalStorage
+            return this;
         }
-        return this;
     }
     
     getAuth() {
@@ -32,17 +38,22 @@ class FirebaseService {
     }
     
     async register(username, password) {
+        if (!this.auth) {
+            throw new Error('Firebase未初始化');
+        }
         try {
             // 将用户名转换为邮箱格式
             const email = `${username}@fleet-op.com`;
             const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
             
             // 保存用户信息
-            await this.firestore.collection('users').doc(userCredential.user.uid).set({
-                username: username,
-                email: email,
-                createdAt: new Date().toISOString()
-            });
+            if (this.firestore) {
+                await this.firestore.collection('users').doc(userCredential.user.uid).set({
+                    username: username,
+                    email: email,
+                    createdAt: new Date().toISOString()
+                });
+            }
             
             return userCredential.user;
         } catch (error) {
@@ -51,6 +62,9 @@ class FirebaseService {
     }
     
     async login(username, password) {
+        if (!this.auth) {
+            throw new Error('Firebase未初始化');
+        }
         try {
             // 将用户名转换为邮箱格式
             const email = `${username}@fleet-op.com`;
@@ -61,19 +75,33 @@ class FirebaseService {
         }
     }
     
-    logout() {
+    async logout() {
+        if (!this.auth) {
+            throw new Error('Firebase未初始化');
+        }
         return this.auth.signOut();
     }
     
     getCurrentUser() {
+        if (!this.auth) {
+            return null;
+        }
         return this.auth.currentUser;
     }
     
     onAuthStateChanged(callback) {
+        if (!this.auth) {
+            // 如果Firebase未初始化，立即调用回调传入null
+            callback(null);
+            return () => {}; // 返回空函数作为unsubscribe
+        }
         return this.auth.onAuthStateChanged(callback);
     }
     
     async saveOperation(operation) {
+        if (!this.firestore) {
+            throw new Error('Firebase未初始化');
+        }
         try {
             const user = this.getCurrentUser();
             if (!user) {
@@ -90,6 +118,9 @@ class FirebaseService {
     }
     
     async getOperations() {
+        if (!this.firestore) {
+            throw new Error('Firebase未初始化');
+        }
         try {
             const user = this.getCurrentUser();
             if (!user) {
@@ -109,6 +140,9 @@ class FirebaseService {
     }
     
     async deleteOperation(operationId) {
+        if (!this.firestore) {
+            throw new Error('Firebase未初始化');
+        }
         try {
             const user = this.getCurrentUser();
             if (!user) {
