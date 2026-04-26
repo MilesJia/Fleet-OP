@@ -95,13 +95,29 @@ class App {
      * 更新认证UI
      * @param {Object} user - Firebase用户对象
      */
-    updateAuthUI(user) {
+    async updateAuthUI(user) {
         if (user) {
             // 显示用户信息
             Helpers.hideElement('loginButton');
             Helpers.hideElement('registerButton');
             Helpers.showElement('userInfo');
-            Helpers.setElementValue('userEmail', user.email);
+            
+            // 获取用户名
+            try {
+                const userDoc = await this.firebaseService.firestore.collection('users').doc(user.uid).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    Helpers.setElementValue('userEmail', userData.username);
+                } else {
+                    // 如果没有用户信息，显示邮箱前缀作为用户名
+                    const username = user.email.split('@')[0];
+                    Helpers.setElementValue('userEmail', username);
+                }
+            } catch (error) {
+                // 出错时显示邮箱前缀
+                const username = user.email.split('@')[0];
+                Helpers.setElementValue('userEmail', username);
+            }
         } else {
             // 显示登录/注册按钮
             Helpers.showElement('loginButton');
@@ -149,17 +165,17 @@ class App {
      * 用户登录
      */
     async login() {
-        const email = Helpers.getElement('loginEmail').value;
+        const username = Helpers.getElement('loginUsername').value;
         const password = Helpers.getElement('loginPassword').value;
         
-        if (!email || !password) {
+        if (!username || !password) {
             Helpers.showElement('loginError');
-            Helpers.setElementValue('loginError', '请填写邮箱和密码');
+            Helpers.setElementValue('loginError', '请填写用户名和密码');
             return;
         }
         
         try {
-            await this.firebaseService.login(email, password);
+            await this.firebaseService.login(username, password);
             this.closeLoginModal();
             Helpers.alert('登录成功！', 'success');
         } catch (error) {
@@ -172,11 +188,11 @@ class App {
      * 用户注册
      */
     async register() {
-        const email = Helpers.getElement('registerEmail').value;
+        const username = Helpers.getElement('registerUsername').value;
         const password = Helpers.getElement('registerPassword').value;
         const confirmPassword = Helpers.getElement('registerConfirmPassword').value;
         
-        if (!email || !password || !confirmPassword) {
+        if (!username || !password || !confirmPassword) {
             Helpers.showElement('registerError');
             Helpers.setElementValue('registerError', '请填写所有字段');
             return;
@@ -189,7 +205,7 @@ class App {
         }
         
         try {
-            await this.firebaseService.register(email, password);
+            await this.firebaseService.register(username, password);
             this.closeRegisterModal();
             Helpers.alert('注册成功！', 'success');
         } catch (error) {
@@ -207,6 +223,180 @@ class App {
             Helpers.alert('已退出登录', 'success');
         } catch (error) {
             Helpers.alert('退出登录失败: ' + error.message, 'error');
+        }
+    }
+    
+    /**
+     * 显示军团管理模态框
+     */
+    showCorpManagement() {
+        Helpers.showElement('corpManagementModal');
+        this.loadCorpInfo();
+    }
+    
+    /**
+     * 关闭军团管理模态框
+     */
+    closeCorpManagementModal() {
+        Helpers.hideElement('corpManagementModal');
+    }
+    
+    /**
+     * 加载军团信息
+     */
+    async loadCorpInfo() {
+        try {
+            const user = this.firebaseService.getCurrentUser();
+            if (!user) {
+                return;
+            }
+            
+            const corpDoc = await this.firebaseService.firestore.collection('corps').doc(user.uid).get();
+            if (corpDoc.exists) {
+                const corpData = corpDoc.data();
+                Helpers.setElementValue('corpName', corpData.name || '');
+                Helpers.setElementValue('corpTag', corpData.tag || '');
+                
+                if (corpData.members) {
+                    this.renderCorpMembers(corpData.members);
+                } else {
+                    this.renderCorpMembers([]);
+                }
+            } else {
+                // 初始化空数据
+                Helpers.setElementValue('corpName', '');
+                Helpers.setElementValue('corpTag', '');
+                this.renderCorpMembers([]);
+            }
+        } catch (error) {
+            console.error('加载军团信息失败:', error);
+        }
+    }
+    
+    /**
+     * 渲染军团成员列表
+     * @param {Array} members - 成员数组
+     */
+    renderCorpMembers(members) {
+        const memberList = Helpers.getElement('memberList');
+        
+        if (members.length === 0) {
+            memberList.innerHTML = '<div style="color: #6b7688; text-align: center; padding: 20px;">暂无成员</div>';
+            return;
+        }
+        
+        memberList.innerHTML = '';
+        members.forEach((member, index) => {
+            const div = document.createElement('div');
+            div.style.cssText = `
+                display: flex; justify-content: space-between; align-items: center;
+                padding: 8px; margin-bottom: 5px;
+                background: #1e293b; border-radius: 4px;
+            `;
+            div.innerHTML = `
+                <span>${member}</span>
+                <button onclick="app.removeCorpMember(${index})" style="
+                    background: #ef4444; color: white;
+                    border: none; padding: 4px 8px; border-radius: 3px;
+                    cursor: pointer; font-size: 12px;
+                ">删除</button>
+            `;
+            memberList.appendChild(div);
+        });
+    }
+    
+    /**
+     * 添加军团成员
+     */
+    addCorpMember() {
+        const memberName = Helpers.getElement('addMemberInput').value.trim();
+        if (!memberName) {
+            Helpers.alert('请输入成员名称', 'error');
+            return;
+        }
+        
+        const memberList = Helpers.getElement('memberList');
+        const currentMembers = [];
+        
+        // 获取当前成员列表
+        const memberElements = memberList.querySelectorAll('div:not([style*="text-align: center"])');
+        memberElements.forEach(element => {
+            const name = element.querySelector('span').textContent;
+            currentMembers.push(name);
+        });
+        
+        if (currentMembers.includes(memberName)) {
+            Helpers.alert('成员已存在', 'error');
+            return;
+        }
+        
+        currentMembers.push(memberName);
+        this.renderCorpMembers(currentMembers);
+        Helpers.setElementValue('addMemberInput', '');
+    }
+    
+    /**
+     * 删除军团成员
+     * @param {number} index - 成员索引
+     */
+    removeCorpMember(index) {
+        const memberList = Helpers.getElement('memberList');
+        const currentMembers = [];
+        
+        // 获取当前成员列表
+        const memberElements = memberList.querySelectorAll('div:not([style*="text-align: center"])');
+        memberElements.forEach(element => {
+            const name = element.querySelector('span').textContent;
+            currentMembers.push(name);
+        });
+        
+        currentMembers.splice(index, 1);
+        this.renderCorpMembers(currentMembers);
+    }
+    
+    /**
+     * 保存军团信息
+     */
+    async saveCorpInfo() {
+        try {
+            const user = this.firebaseService.getCurrentUser();
+            if (!user) {
+                Helpers.alert('请先登录', 'error');
+                return;
+            }
+            
+            const corpName = Helpers.getElement('corpName').value.trim();
+            const corpTag = Helpers.getElement('corpTag').value.trim();
+            
+            if (!corpName) {
+                Helpers.alert('请输入军团名称', 'error');
+                return;
+            }
+            
+            // 获取成员列表
+            const memberList = Helpers.getElement('memberList');
+            const members = [];
+            
+            const memberElements = memberList.querySelectorAll('div:not([style*="text-align: center"])');
+            memberElements.forEach(element => {
+                const name = element.querySelector('span').textContent;
+                members.push(name);
+            });
+            
+            // 保存到Firebase
+            await this.firebaseService.firestore.collection('corps').doc(user.uid).set({
+                name: corpName,
+                tag: corpTag,
+                members: members,
+                ownerId: user.uid,
+                updatedAt: new Date().toISOString()
+            });
+            
+            Helpers.alert('军团信息保存成功', 'success');
+            this.closeCorpManagementModal();
+        } catch (error) {
+            console.error('保存军团信息失败:', error);
+            Helpers.alert('保存失败: ' + error.message, 'error');
         }
     }
 

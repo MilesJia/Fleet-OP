@@ -31,17 +31,29 @@ class FirebaseService {
         return this.firestore;
     }
     
-    async register(email, password) {
+    async register(username, password) {
         try {
+            // 将用户名转换为邮箱格式
+            const email = `${username}@fleet-op.com`;
             const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
+            
+            // 保存用户信息
+            await this.firestore.collection('users').doc(userCredential.user.uid).set({
+                username: username,
+                email: email,
+                createdAt: new Date().toISOString()
+            });
+            
             return userCredential.user;
         } catch (error) {
             throw new Error(error.message);
         }
     }
     
-    async login(email, password) {
+    async login(username, password) {
         try {
+            // 将用户名转换为邮箱格式
+            const email = `${username}@fleet-op.com`;
             const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
             return userCredential.user;
         } catch (error) {
