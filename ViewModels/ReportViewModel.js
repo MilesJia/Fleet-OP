@@ -9,6 +9,7 @@ class ReportViewModel {
      */
     constructor(operation) {
         this.operation = operation;
+        this.report = null;  // 保存Report对象
         this.reportText = '';
         this.onReportGenerated = null;  // 报告生成回调
     }
@@ -18,7 +19,8 @@ class ReportViewModel {
      * @returns {string} 报告文本
      */
     generate() {
-        this.reportText = ReportService.generate(this.operation);
+        this.report = ReportService.generate(this.operation);
+        this.reportText = this.report.getReportText();
         if (this.onReportGenerated) {
             this.onReportGenerated(this.reportText);
         }
@@ -46,10 +48,10 @@ class ReportViewModel {
      * @returns {Promise<Object>} 操作结果
      */
     async copyReportEVE() {
-        if (!this.operation || !this.operation.report) {
+        if (!this.report) {
             return { success: false, message: '请先生成报告' };
         }
-        const eveText = this.operation.report.generateEVE();
+        const eveText = this.report.generateEVE();
         return await ReportService.copyToClipboard(eveText);
     }
 

@@ -4,13 +4,12 @@
  */
 class ReportService {
     /**
-     * 生成报告文本
+     * 生成报告
      * @param {FleetOperation} operation - 作战实例
-     * @returns {string} 报告文本
+     * @returns {Report} Report报告对象
      */
     static generate(operation) {
-        const report = new Report(operation);
-        return report.generate();
+        return new Report(operation);
     }
 
     /**
