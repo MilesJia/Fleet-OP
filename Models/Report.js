@@ -30,7 +30,7 @@ class Report {
         // 构建战损名单
         let lossStr = '';
         if (op.lossMembers.length > 0) {
-            lossStr += '💀 损失名单：\n';
+            lossStr += '损失名单：\n';
             op.lossMembers.forEach(m => {
                 lossStr += `- ${m.name.padEnd(18)} | ${m.ship.padEnd(14)} | ${m.hasKM ? '有补损' : '无补损'}\n`;
             });
@@ -38,7 +38,7 @@ class Report {
         }
 
         // 构建PAP积分明细
-        let papStr = '💰 PAP积分：\n';
+        let papStr = 'PAP积分：\n';
         const roleNames = {
             dps: '火力',
             logi: '后勤',
@@ -57,7 +57,7 @@ class Report {
         });
 
         // 构建角色统计
-        const roleStats = `📊 编制统计
+        const roleStats = `编制统计
 火力：${count.dps}
 后勤：${count.logi}
 拦截：${count.intercept}
